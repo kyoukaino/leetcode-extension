@@ -281,6 +281,7 @@ export interface ISubmitEvent {
   id: string;
   sub_type: string; // test  submit
   accepted: boolean;
+  compare_result?: string; // 测试时每个用例是否通过, 如 "10"
 }
 
 export class RemarkComment implements Comment {

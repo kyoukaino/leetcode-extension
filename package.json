@@ -2,7 +2,7 @@
     "name": "vscode-leetcode-problem-rating",
     "displayName": "LeetCode (Fork)",
     "description": "%main.description%",
-    "version": "3.3.0",
+    "version": "3.3.1",
     "author": "ccagml",
     "publisher": "kyoukaino",
     "license": "MIT",

@@ -1,3 +1,9 @@
+# version 3.3.1 (kyoukaino fork)
+
+- 测试结果标题直接显示结论: ✅ 全部通过 2/2 / ❌ 未通过 1/2 / ❌ Runtime Error
+- 用例表格增加每个用例的通过状态和对应输入, 空的 Stdout 不再显示
+- 修复测试代码运行成功但答案错误时不标出差异, 以及差异从字母数字后开始时标记显示为原始字符
+
 # version 3.3.0 (kyoukaino fork)
 
 - 扩展 id 改为 kyoukaino.vscode-leetcode-problem-rating, 不再被市场版本覆盖

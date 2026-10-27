@@ -88,32 +88,90 @@ class SubmissionService extends BaseWebViewService {
     return key;
   }
 
+  // 每个用例是否通过: 优先用力扣返回的 compare_result, 长度对不上时按输出和预期是否相同判断
+  private getCaseResults(ans: string[], exp: string[]): boolean[] {
+    const compare_result = this.getSubmitEvent()?.compare_result || "";
+    const caseCount = Math.max(ans.length, exp.length);
+    const res: boolean[] = [];
+    for (let index = 0; index < caseCount; index++) {
+      res.push(compare_result.length == caseCount ? compare_result[index] == "1" : ans[index] === exp[index]);
+    }
+    return res;
+  }
+
+  // 测试输入是所有用例的参数按行拼接, 行数能整除用例数时按用例切分
+  private getCaseInputs(caseCount: number): string[] | undefined {
+    const input = this.result["Your Input"];
+    if (!input || caseCount == 0) {
+      return undefined;
+    }
+    const lines = input.join("\n").split("\n");
+    if (lines.length % caseCount != 0) {
+      return undefined;
+    }
+    const paramCount = lines.length / caseCount;
+    const res: string[] = [];
+    for (let index = 0; index < caseCount; index++) {
+      res.push(lines.slice(index * paramCount, (index + 1) * paramCount).join(", "));
+    }
+    return res;
+  }
+
+  private getTitle(caseResults: boolean[] | undefined): string {
+    const message = this.result.messages[0];
+    const submitEvent = this.getSubmitEvent();
+    if (caseResults && caseResults.length > 0 && message == "Finished") {
+      const passed = caseResults.filter((x) => x).length;
+      return passed == caseResults.length
+        ? `## ✅ 全部通过 ${passed}/${caseResults.length}`
+        : `## ❌ 未通过 ${passed}/${caseResults.length}`;
+    }
+    if (submitEvent?.sub_type == "submit" || message != "Finished") {
+      return `## ${submitEvent?.accepted ? "✅" : "❌"} ${message}`;
+    }
+    return `## ${message}`;
+  }
+
   protected getWebviewContent(): string {
     const styles: string = markdownService.getStyles(this.panel);
-    const title: string = `## ${this.result.messages[0]}`;
     if (this.result?.costTime && this.result?.costTime.length > 0) {
       this.result.messages.push(this.result?.costTime[0]);
     }
     const messages: string[] = this.result.messages.slice(1).map((m: string) => `* ${m}`);
+
+    let ans_key: Array<any> = this.getAnswerKey(this.result);
+    let caseResults: boolean[] | undefined;
+    let ans: string[] = [];
+    let exp: string[] = [];
+    if (ans_key[0] != undefined && ans_key[1] != undefined) {
+      // 输出末尾带一个空行, 不算用例
+      ans = trimTailEmpty(this.result[ans_key[0]]);
+      exp = trimTailEmpty(this.result[ans_key[1]]);
+      caseResults = this.getCaseResults(ans, exp);
+    }
+    const title: string = this.getTitle(caseResults);
+
     let sections: string[] = [];
     if (isAnswerDiffColor()) {
+      const caseInputs = caseResults ? this.getCaseInputs(caseResults.length) : undefined;
       sections = Object.keys(this.result)
         .filter(this.sections_filtter)
+        .filter((key: string) => !(caseInputs && key == "Your Input"))
+        .filter((key: string) => !(key == "Stdout" && this.result[key].join("").trim() == ""))
         .map((key: string) => [`### ${key}`, "```", this.result[key].join("\n"), "```"].join("\n"));
 
-      let ans_key: Array<any> = this.getAnswerKey(this.result);
-      if (ans_key[0] != undefined && ans_key[1] != undefined) {
-        sections.push(`### Answer\n`);
-        sections.push(`| ${ans_key[0]} | ${ans_key[1]}  | `);
-        sections.push(`|  :---------:  | :---------:    | `);
-        let ans = this.result[ans_key[0]];
-        let exp = this.result[ans_key[1]];
-        let max_len = Math.max(ans.length, exp.length);
-        for (let index = 0; index < max_len; index++) {
-          sections.push(`| ${ans[index] || ""} | ${exp[index] || ""}  | `);
-        }
+      if (caseResults) {
+        const outputName = ans_key[0].replace(/^(Output|Answer)/, "输出");
+        sections.push(`### 用例\n`);
+        sections.push(`| # | 结果 | ${caseInputs ? "输入 | " : ""}${outputName} | 预期 |`);
+        sections.push(`| :-: | :-: | ${caseInputs ? ":-- | " : ""}:-- | :-- |`);
+        caseResults.forEach((pass, index) => {
+          const input = caseInputs ? `${escapeCell(caseInputs[index])} | ` : "";
+          sections.push(
+            `| ${index + 1} | ${pass ? "✅" : "❌"} | ${input}${escapeCell(ans[index] || "")} | ${escapeCell(exp[index] || "")} |`
+          );
+        });
       }
-      // require("../utils/testHot").test_add_table(sections);
     } else {
       sections = Object.keys(this.result)
         .filter((key: string) => key !== "messages" && key !== "system_message")
@@ -170,10 +228,16 @@ class SubmissionService extends BaseWebViewService {
     let str1_right = str1.substring(dif_len);
     let str2_left = str2.substring(0, dif_len);
     let str2_right = str2.substring(dif_len);
-    result.push(str1_left + this.getRedPre() + str1_right + this.getRedEnd());
-    result.push(str2_left + this.getRedPre() + str2_right + this.getRedEnd());
+    result.push(this.mark_diff(str1_left, str1_right));
+    result.push(this.mark_diff(str2_left, str2_right));
 
     return result;
+  }
+
+  // 相同前缀也放进代码块, 否则 ** 紧跟在字母数字后面时无法识别为加粗
+  private mark_diff(left: string, right: string) {
+    const left_str = left ? "`" + left + "`" : "";
+    return right ? left_str + this.getRedPre() + right + this.getRedEnd() : left_str;
   }
 
   private add_color(temp) {
@@ -207,27 +271,37 @@ class SubmissionService extends BaseWebViewService {
     }
   }
 
+  // 用 ** 而不是 __, 差异从数字或字母后面开始时 __ 不会被识别为加粗
   private getRedPre() {
-    return "__`";
+    return "**`";
   }
   private getRedEnd() {
-    return "`__";
+    return "`**";
   }
 
   private parseResult(raw: string): IResult {
     let temp = JSON.parse(raw);
 
-    // 当结果是正确的时候,不用判断上色
-    if (temp?.system_message?.accepted) {
-      return temp;
-    }
-
+    // accepted 只表示代码运行成功, 答案是否正确由 add_color 按用例判断
     if (isAnswerDiffColor()) {
       this.add_color(temp);
     }
 
     return temp;
   }
+}
+
+function trimTailEmpty(lines: string[]): string[] {
+  const res = [...(lines || [])];
+  while (res.length > 0 && res[res.length - 1] === "") {
+    res.pop();
+  }
+  return res;
+}
+
+// markdown 表格单元格里的 | 需要转义
+function escapeCell(str: string): string {
+  return str.replace(/\|/g, "\\|");
 }
 
 interface IResult {
