@@ -30,6 +30,7 @@ import { DebugMediator, DebugProxy } from "./debug/DebugModule";
 import { RankScoreDataMediator, RankScoreDataProxy } from "./rankScore/RankScoreDataModule";
 import { TodayDataMediator, TodayDataProxy } from "./todayData/TodayDataModule";
 import { RecentContestMediator, RecentContestProxy } from "./recentContestData/RecentContestDataModule";
+import { StudyPlanMediator, StudyPlanProxy } from "./studyPlan/StudyPlanModule";
 import { ContestQuestionMediator, ContestQuestionProxy } from "./recentContestData/ContestQuestionDataModule";
 
 //==================================BABA========================================
@@ -77,6 +78,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
       TodayDataMediator,
       RecentContestProxy,
       RecentContestMediator,
+      StudyPlanProxy,
+      StudyPlanMediator,
       ContestQuestionProxy,
       ContestQuestionMediator,
     ]);

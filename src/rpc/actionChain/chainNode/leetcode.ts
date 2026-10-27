@@ -1057,6 +1057,52 @@ and csrf token to the user object and saves the user object to the session. */
     });
   };
 
+  /* 获取学习计划(如 top-100-liked)的分组和题目, 公开接口, 不需要登录 */
+  getStudyPlanDetail = (planSlug, cb) => {
+    const opts: any = {};
+    opts.url = configUtils.sys.urls.graphql;
+    opts.headers = {};
+    opts.headers.Origin = configUtils.sys.urls.base;
+    opts.headers.Referer = configUtils.sys.urls.base + "/studyplan/" + planSlug + "/";
+
+    opts.json = true;
+    opts.body = {
+      operationName: "studyPlanDetail",
+      variables: { planSlug: planSlug },
+      query: [
+        "query studyPlanDetail($planSlug: String!) {",
+        "  studyPlanV2Detail(planSlug: $planSlug) {",
+        "    slug",
+        "    name",
+        "    planSubGroups {",
+        "      slug",
+        "      name",
+        "      questions {",
+        "        questionFrontendId",
+        "        titleSlug",
+        "      }",
+        "    }",
+        "  }",
+        "}",
+      ].join("\n"),
+    };
+
+    request.post(opts, function (e, resp, body) {
+      e = checkError(e, resp, 200);
+      if (e) return cb(e);
+      const plan = body?.data?.studyPlanV2Detail;
+      if (!plan) return cb({ msg: "study plan not found: " + planSlug });
+      let result: any = {};
+      result.slug = plan.slug;
+      result.name = plan.name;
+      result.groups = (plan.planSubGroups || []).map((group) => ({
+        name: group.name,
+        questions: (group.questions || []).map((question) => question.questionFrontendId),
+      }));
+      return cb(null, result);
+    });
+  };
+
   /* A function that gets the questions from contests. */
   getContestQuestionList = (contestName,cb) => {
     let problems = [];

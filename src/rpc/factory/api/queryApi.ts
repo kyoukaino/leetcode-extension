@@ -86,6 +86,12 @@ class QueryApi extends ApiBase {
         default: false,
         describe: "get Question list of a contest",
       })
+      .option("k", {
+        alias: "getStudyPlan",
+        type: "string",
+        default: "",
+        describe: "get groups and questions of a study plan",
+      })
       .option("z", {
         alias: "test",
         type: "string",
@@ -171,6 +177,11 @@ class QueryApi extends ApiBase {
       chainMgr.getChainHead().getRecentContest(function (e, result) {
         if (e) return;
         reply.info(JSON.stringify(result));
+      });
+    } if (argv.k) {
+      chainMgr.getChainHead().getStudyPlanDetail(argv.k, function (e, result) {
+        if (e) return reply.info(JSON.stringify({ code: 101, msg: e.msg || String(e) }));
+        reply.info(JSON.stringify({ code: 100, data: result }));
       });
     } if (argv.j) {
       chainMgr.getChainHead().getContestQuestion(argv.j, function (e, result) {

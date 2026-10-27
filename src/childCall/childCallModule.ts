@@ -308,6 +308,12 @@ class ExecuteService implements Disposable {
     return solution;
   }
 
+  public async getStudyPlan(planSlug: string): Promise<string> {
+    const cmd: string[] = [await this.getLeetCodeBinaryPath(), "query", "-k", planSlug];
+    const solution: string = await this.callWithMsg("正在获取学习计划~", this.nodeExecutable, cmd);
+    return solution;
+  }
+
   public async getDescription(problemNodeId: string, needTranslation: boolean): Promise<string> {
     const cmd: string[] = [await this.getLeetCodeBinaryPath(), "show", problemNodeId, "-x"];
     if (!needTranslation) {

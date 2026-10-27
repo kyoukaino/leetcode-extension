@@ -134,6 +134,12 @@ export class TreeDataService implements vscode.TreeDataProvider<TreeNodeModel> {
       else if (element.nodeType == TreeNodeType.Tree_choice) {
         return treeViewController.getChoiceChild();
       }
+      else if (element.nodeType == TreeNodeType.Tree_choice_fenlei) {
+        return treeViewController.getChoicePlanChild(element);
+      }
+      else if (element.nodeType == TreeNodeType.Tree_choice_fenlei_group) {
+        return treeViewController.getChoiceGroupChild(element);
+      }
       else if (element.nodeType == TreeNodeType.Tree_contest) {
         return treeViewController.getContestChild();
       }

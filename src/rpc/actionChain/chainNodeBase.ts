@@ -39,6 +39,10 @@ export class ChainNodeBase {
     this.next.getContestQuestionList(contestName,cb);
   }
 
+  public getStudyPlanDetail(planSlug: string, cb: Function): void {
+    this.next.getStudyPlanDetail(planSlug, cb);
+  }
+
   public getRatingOnline(cb: Function): void {
     this.next.getRatingOnline(cb);
   }

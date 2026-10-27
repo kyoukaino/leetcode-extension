@@ -117,6 +117,7 @@ export enum TreeNodeType {
   Tree_choice = 10600, // choice
   Tree_choice_fenlei = 10610, // choice 分类层
   Tree_choice_fenlei_leaf = 10611, // choice 分类层
+  Tree_choice_fenlei_group = 10620, // choice 学习计划的分组层, 叶子沿用 Tree_choice_fenlei_leaf
 
   Tree_score = 10700,// score
   Tree_score_fen = 10710, //具体分数层

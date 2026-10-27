@@ -138,6 +138,8 @@ export enum BabaStr {
   TodayDataMediator = "TodayDataMediator",
   RecentContestProxy = "RecentContestProxy",
   RecentContestMediator = "RecentContestMediator",
+  StudyPlanProxy = "StudyPlanProxy",
+  StudyPlanMediator = "StudyPlanMediator",
   ContestQuestionProxy = "ContestQuestionProxy",
   ContestQuestionMediator = "ContestQuestionMediator",
 }

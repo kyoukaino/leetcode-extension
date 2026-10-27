@@ -66,6 +66,7 @@ import * as fse from "fs-extra";
 import { groupDao } from "../dao/groupDao";
 import { fileMeta, ProblemMeta } from "../utils/problemUtils";
 import { BABA, BabaStr } from "../BABA";
+import { IStudyPlan } from "../studyPlan/StudyPlanModule";
 
 // 视图控制器
 class TreeViewController implements Disposable {
@@ -1328,6 +1329,80 @@ class TreeViewController implements Disposable {
     return res;
   }
 
+  // 精选题单的下一层: 有学习计划的按官网分组, 否则直接列出内置题目
+  public async getChoicePlanChild(choiceNode: TreeNodeModel): Promise<TreeNodeModel[]> {
+    const choice = BABA.getProxy(BabaStr.TreeDataProxy)
+      .getChoiceData()
+      .find((element) => element.id == choiceNode.id);
+    if (!choice) {
+      return [];
+    }
+
+    if (choice.planSlug) {
+      const plan: IStudyPlan | undefined = await BABA.getProxy(BabaStr.StudyPlanProxy).getStudyPlan(choice.planSlug);
+      if (plan) {
+        return plan.groups.map((group, index) => {
+          const nodes = this.getQuestionNodesByFid(group.questions);
+          const acCount = nodes.filter((node) => node.state === ProblemState.AC).length;
+          return CreateTreeNodeModel(
+            {
+              id: `${choice.id}#${index}`,
+              name: `${group.name} (${acCount}/${group.questions.length})`,
+              rootNodeSortId: 4,
+            },
+            TreeNodeType.Tree_choice_fenlei_group
+          );
+        });
+      }
+      // 学习计划获取失败, 内置题单存的是 fid, 保持学习计划的顺序
+      return this.toChoiceLeafNodes(this.getQuestionNodesByFid(choice.questions));
+    }
+
+    // 其他内置题单存的是 qid
+    const res: TreeNodeModel[] = [];
+    choice.questions.forEach((qid) => {
+      const node = BABA.getProxy(BabaStr.QuestionDataProxy).getNodeByQid(String(qid));
+      if (node) {
+        res.push(node);
+      }
+    });
+    return sortNodeList(this.toChoiceLeafNodes(res));
+  }
+
+  // 学习计划分组下的题目, 保持官网顺序
+  public async getChoiceGroupChild(groupNode: TreeNodeModel): Promise<TreeNodeModel[]> {
+    const [choiceId, groupIndex] = groupNode.id.split("#");
+    const choice = BABA.getProxy(BabaStr.TreeDataProxy)
+      .getChoiceData()
+      .find((element) => element.id == choiceId);
+    if (!choice?.planSlug) {
+      return [];
+    }
+    const plan: IStudyPlan | undefined = await BABA.getProxy(BabaStr.StudyPlanProxy).getStudyPlan(choice.planSlug);
+    const group = plan?.groups[Number(groupIndex)];
+    if (!group) {
+      return [];
+    }
+    return this.toChoiceLeafNodes(this.getQuestionNodesByFid(group.questions));
+  }
+
+  private getQuestionNodesByFid(fids: Array<string | number>): TreeNodeModel[] {
+    const res: TreeNodeModel[] = [];
+    fids.forEach((fid) => {
+      const node = BABA.getProxy(BabaStr.QuestionDataProxy).getNodeById(String(fid));
+      if (node) {
+        res.push(node);
+      }
+    });
+    return res;
+  }
+
+  private toChoiceLeafNodes(nodes: TreeNodeModel[]): TreeNodeModel[] {
+    return nodes
+      .filter((node) => this.canShow(node))
+      .map((node) => CreateTreeNodeModel(node.get_data(), TreeNodeType.Tree_choice_fenlei_leaf));
+  }
+
   public getTagChild(): TreeNodeModel[] {
     const res: TreeNodeModel[] = [];
     for (const tag of BABA.getProxy(BabaStr.QuestionDataProxy).getTagSet().values()) {
@@ -1361,18 +1436,6 @@ class TreeViewController implements Disposable {
   // 第二层取第三层的叶子
   public getChildrenSon(TreeChildNode: TreeNodeModel): TreeNodeModel[] {
     const res: TreeNodeModel[] = [];
-    const choiceQuestionId: Map<number, boolean> = new Map<number, boolean>();
-    if (TreeChildNode.nodeType == TreeNodeType.Tree_choice_fenlei) {
-      const all_choice = BABA.getProxy(BabaStr.TreeDataProxy).getChoiceData();
-      all_choice.forEach((element) => {
-        if (element.id == TreeChildNode.id) {
-          element.questions.forEach((kk) => {
-            choiceQuestionId[kk] = true;
-          });
-          return;
-        }
-      });
-    }
 
     for (const node of BABA.getProxy(BabaStr.QuestionDataProxy).getfidMapQuestionData().values()) {
       if (!this.canShow(node)) {
@@ -1409,12 +1472,6 @@ class TreeViewController implements Disposable {
           if (check_rank <= node_rank && node_rank < check_rank + 100) {
             res.push(CreateTreeNodeModel(node.get_data(), TreeNodeType.Tree_score_fen_leaf));
           }
-        }
-      }
-
-      else if (TreeChildNode.nodeType == TreeNodeType.Tree_choice_fenlei) {
-        if (choiceQuestionId[Number(node.get_data().qid)]) {
-          res.push(CreateTreeNodeModel(node.get_data(), TreeNodeType.Tree_choice_fenlei_leaf));
         }
       }
 
