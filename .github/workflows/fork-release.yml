@@ -36,6 +36,7 @@ jobs:
 
       - name: Package
         run: |
+          mkdir -p dist
           npx --yes @vscode/vsce@3 package -o dist/
           echo "VSIX_FILE=$(ls dist/*.vsix)" >> "$GITHUB_ENV"
 
