@@ -9,6 +9,7 @@ import {
   getProblemSpecialCode,
   randomString,
   extensionState,
+  getExtensionDir,
   IDebugConfig,
   IProblemType,
 } from "../utils/problemUtils";
@@ -212,7 +213,7 @@ export class DebugCpp {
       .replace(codeRegExp, insertCode);
     await fse.writeFile(entryFile, newEntryFileContent);
 
-    const extDir: string = vscode.extensions.getExtension("ccagml.vscode-leetcode-problem-rating")!.extensionPath;
+    const extDir: string = getExtensionDir();
 
     // copy common.h
     const commonHeaderPath: string = path.join(extDir, "resources/debug/entry/cpp/problems/common.h");

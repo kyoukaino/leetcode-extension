@@ -1,10 +1,10 @@
 {
     "name": "vscode-leetcode-problem-rating",
-    "displayName": "LeetCode",
+    "displayName": "LeetCode (Fork)",
     "description": "%main.description%",
-    "version": "3.2.4",
+    "version": "3.3.0",
     "author": "ccagml",
-    "publisher": "ccagml",
+    "publisher": "kyoukaino",
     "license": "MIT",
     "icon": "resources/LCPR.png",
     "engines": {
@@ -12,9 +12,9 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/ccagml/leetcode-extension"
+        "url": "https://github.com/kyoukaino/leetcode-extension"
     },
-    "homepage": "https://github.com/ccagml/leetcode-extension/README.md",
+    "homepage": "https://github.com/kyoukaino/leetcode-extension#readme",
     "categories": [
         "Other",
         "Snippets",

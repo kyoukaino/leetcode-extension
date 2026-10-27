@@ -1,3 +1,11 @@
+# version 3.3.0 (kyoukaino fork)
+
+- 扩展 id 改为 kyoukaino.vscode-leetcode-problem-rating, 不再被市场版本覆盖
+- 精选题单按官网学习计划在线展示: 题单 -> 分组(已通过/总数) -> 题目, 保持官网顺序, 失败时回退内置题单
+- 新增 LeetCode 75, Hot 100 / 面试经典 150 / 程序员面试金典 内置数据按官网更新
+- 修复 Hot 100 中 763/994/1143 按 qid 匹配显示错题
+- Cookie 登录只需粘贴一次整段 Cookie 或 cURL, 无需输入用户名
+
 # version 3.2.4
 
 - 更新 hot100 题目编号

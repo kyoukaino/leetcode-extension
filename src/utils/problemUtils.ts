@@ -7,6 +7,11 @@ import { useWsl, isWindows, usingCmd } from "./SystemUtils";
 const beforeStubReg: RegExp = /@lcpr-before-debug-begin([\s\S]*?)@lcpr-before-debug-end/;
 const afterStubReg: RegExp = /@lcpr-after-debug-begin([\s\S]*?)@lcpr-after-debug-end/;
 
+// 扩展根目录, 编译后本文件位于 out/src/utils, 不依赖 publisher.name 形式的扩展 id
+export function getExtensionDir(): string {
+  return path.resolve(__dirname, "..", "..", "..");
+}
+
 interface IExtensionState {
   context: vscode.ExtensionContext;
   cachePath: string;
@@ -153,7 +158,7 @@ export async function getProblemSpecialCode(
 }
 
 export async function getEntryFile(language: string, problem: string): Promise<string> {
-  const extDir: string = vscode.extensions.getExtension("ccagml.vscode-leetcode-problem-rating")!.extensionPath;
+  const extDir: string = getExtensionDir();
   const fileExt: string = genFileExt(language);
   const specialCode: string = await getProblemSpecialCode(language, problem, fileExt, extDir);
   const tmpEntryCode: string = (

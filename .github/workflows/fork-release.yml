@@ -1,0 +1,53 @@
+name: fork-release
+
+# 推送 v* tag 时打包 vsix 并发布到 GitHub Release; 手动触发时只打包, 产物在 Actions 页面下载
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Check tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          PKG_VERSION="v$(node -p "require('./package.json').version")"
+          if [ "$PKG_VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME 与 package.json 版本 $PKG_VERSION 不一致"
+            exit 1
+          fi
+
+      - name: Package
+        run: |
+          npx --yes @vscode/vsce@3 package -o dist/
+          echo "VSIX_FILE=$(ls dist/*.vsix)" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: ${{ env.VSIX_FILE }}
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES=$(awk 'NR>1 && /^# version/{exit} NR>1' CHANGELOG.md)
+          gh release create "$GITHUB_REF_NAME" "$VSIX_FILE" --title "$GITHUB_REF_NAME" --notes "$NOTES"
