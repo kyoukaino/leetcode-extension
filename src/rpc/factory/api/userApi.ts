@@ -139,7 +139,12 @@ class UserApi extends ApiBase {
           if (e) return reply.info(e);
           chainMgr.getChainHead().cookieLogin(user, function (e, user) {
             if (e) return reply.info(JSON.stringify({ code: -6, msg: e.msg || e }));
-            reply.info(JSON.stringify({ code: 100, user_name: user.name || user.login || "username" }));
+            // 用户名从接口获取, 取不到说明 cookie 无效或已过期
+            if (!user.name) {
+              sessionUtils.deleteUser();
+              return reply.info(JSON.stringify({ code: -6, msg: "Cookie 无效或已过期, 请重新从浏览器复制" }));
+            }
+            reply.info(JSON.stringify({ code: 100, user_name: user.name }));
           });
         }
       );
@@ -157,7 +162,12 @@ class UserApi extends ApiBase {
           if (e) return reply.info(e);
           chainMgr.getChainHead().curlcookieLogin(user, function (e, user) {
             if (e) return reply.info(JSON.stringify({ code: -6, msg: e.msg || e }));
-            reply.info(JSON.stringify({ code: 100, user_name: user.name || user.login || "username" }));
+            // 用户名从接口获取, 取不到说明 cookie 无效或已过期
+            if (!user.name) {
+              sessionUtils.deleteUser();
+              return reply.info(JSON.stringify({ code: -6, msg: "Cookie 无效或已过期, 请重新从浏览器复制" }));
+            }
+            reply.info(JSON.stringify({ code: 100, user_name: user.name }));
           });
         }
       );

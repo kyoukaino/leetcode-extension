@@ -481,50 +481,48 @@ class ExecuteService implements Disposable {
     });
     child_process.on("error", reject);
 
-    const name: string | undefined = await window.showInputBox({
-      prompt: "Enter username or E-mail.",
-      ignoreFocusOut: true,
-      validateInput: (s: string): string | undefined => (s && s.trim() ? undefined : "The input must not be empty"),
-    });
+    const isByCookie: boolean = arg.loginMethod === "Cookie";
+    const isByCurl: boolean = arg.loginMethod === "curltype";
+    // cookie / cURL 登录的用户名由接口返回, 这里只是占位
+    let name: string | undefined = "cookie";
+    if (!isByCookie && !isByCurl) {
+      name = await window.showInputBox({
+        prompt: "Enter username or E-mail.",
+        ignoreFocusOut: true,
+        validateInput: (s: string): string | undefined => (s && s.trim() ? undefined : "The input must not be empty"),
+      });
+    }
     if (!name) {
       child_process.kill();
       return resolve(undefined);
     }
     child_process.stdin?.write(`${name}\n`);
-    const isByCookie: boolean = arg.loginMethod === "Cookie";
     let pwd: string | undefined = undefined;
     if (isByCookie) {
-      let cf_v = await window.showInputBox({
-        title: '正确的cookie例子csrftoken="xxx"; LEETCODE_SESSION="yyy";',
-        prompt: "输入例子中csrftoken的值xxx",
+      const cookieText = await window.showInputBox({
+        title: "粘贴浏览器中 leetcode.cn 请求的 Cookie",
+        prompt: "整段 Cookie 请求头, 或在开发者工具中对请求右键 Copy as cURL 的内容均可",
+        password: true,
         ignoreFocusOut: true,
-        validateInput: (s: string): string | undefined => (s ? undefined : "csrftoken不为空"),
+        validateInput: (s: string): string | undefined => {
+          const cookie = parseLeetCodeCookie(s);
+          if (!cookie.csrftoken && !cookie.session) {
+            return "没有找到 csrftoken 和 LEETCODE_SESSION";
+          }
+          if (!cookie.csrftoken) {
+            return "没有找到 csrftoken";
+          }
+          if (!cookie.session) {
+            return "没有找到 LEETCODE_SESSION";
+          }
+          return undefined;
+        },
       });
-      let ls_v = await window.showInputBox({
-        title: '正确的cookie例子csrftoken="xxx"; LEETCODE_SESSION="yyy";',
-        prompt: "输入例子中LEETCODE_SESSION的值yyy",
-        ignoreFocusOut: true,
-        validateInput: (s: string): string | undefined => (s && s.trim() ? undefined : "LEETCODE_SESSION不为空"),
-      });
-
-      if (cf_v && ls_v) {
-        let cf_v_t = cf_v.trim();
-        let ls_v_t = ls_v.trim();
-        // 判断输入的有没有 " '
-        let cf_flag = cf_v_t[0] == '"' || cf_v_t[0] == "'";
-        let ls_flag = ls_v_t[0] == '"' || ls_v_t[0] == "'";
-        if (cf_flag && ls_flag) {
-          pwd = `csrftoken=${cf_v_t};LEETCODE_SESSION=${ls_v_t};`;
-        } else if (cf_flag) {
-          pwd = `csrftoken=${cf_v_t};LEETCODE_SESSION="${ls_v_t}";`;
-        } else if (ls_flag) {
-          pwd = `csrftoken="${cf_v_t}";LEETCODE_SESSION=${ls_v_t};`;
-        } else {
-          pwd = `csrftoken="${cf_v_t}";LEETCODE_SESSION="${ls_v_t}";`;
-        }
+      const cookie = parseLeetCodeCookie(cookieText || "");
+      if (cookie.csrftoken && cookie.session) {
+        pwd = `csrftoken=${cookie.csrftoken};LEETCODE_SESSION=${cookie.session};`;
       }
-      // csrftoken="xxxx"; LEETCODE_SESSION="xxxx";
-    } else if (arg.loginMethod === "curltype") {
+    } else if (isByCurl) {
       pwd = await window.showInputBox({
         prompt: "输入从浏览器复制来的cURL请求.",
         password: true,
@@ -651,4 +649,16 @@ export class ChildCallMediator extends BABAMediator {
         break;
     }
   }
+}
+
+// 从整段 Cookie 请求头或 cURL 命令中取出登录需要的两个值, 兼容带引号和 cmd 版 cURL 的 ^ 转义
+export function parseLeetCodeCookie(text: string): { csrftoken?: string; session?: string } {
+  const pick = (pattern: RegExp): string | undefined => {
+    const match = pattern.exec(text);
+    return match ? match[1] : undefined;
+  };
+  return {
+    csrftoken: pick(/csrftoken=["']?([^;\s"'^]+)/),
+    session: pick(/LEETCODE_SESSION=["']?([^;\s"'^]+)/),
+  };
 }

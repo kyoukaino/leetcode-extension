@@ -707,7 +707,8 @@ and csrf token to the user object and saves the user object to the session. */
       }
 
       that.getUserInfo(function (e, _user) {
-        if (!e) {
+        // cookie 无效时接口返回 user: null
+        if (!e && _user) {
           user.paid = _user.isCurrentUserPremium;
           user.name = _user.username;
         }
